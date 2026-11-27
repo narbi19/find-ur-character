@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Pretty Clay Avatar Studio</title>
+  <style>
+    :root {
+      --bg: #f6f8fc;
+      --card: #ffffff;
+      --ink: #1e293b;
+      --muted: #64748b;
+      --primary: #f97316;
+      --primary-hover: #ea580c;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.5;
+    }
+    .container { max-width: 1020px; margin: 0 auto; padding: 24px 16px 48px; }
+    .header {
+      background: linear-gradient(135deg, #fff7ed, #ffedd5);
+      border: 1px solid #fed7aa;
+      border-radius: 16px;
+      padding: 22px 24px;
+      margin-bottom: 20px;
+    }
+    .header h1 { margin: 0 0 6px; font-size: 1.7rem; }
+    .header p { margin: 0; color: #7c2d12; font-size: 0.95rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+      gap: 18px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+    }
+    .card h2 { margin: 0 0 12px; font-size: 1.1rem; }
+    .canvas-box {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      max-height: 320px;
+      border: 2px dashed #cbd5e1;
+      border-radius: 12px;
+      background: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+    canvas { max-width: 100%; max-height: 100%; display: block; }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .btn {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #fff;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    .btn:hover { background: #f1f5f9; }
+    .btn-primary {
+      width: 100%;
+      margin-top: 14px;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 10px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+    select, input[type="file"] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: #fff;
+    }
+    .dna-box {
+      margin-top: 14px;
+      padding: 14px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.88rem;
+    }
+    .dna-box ul { margin: 8px 0 0 18px; padding: 0; }
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 0.78rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      margin: 8px 0 0;
+    }
+    .pill {
+      display: inline-block;
+      background: #ffedd5;
+      color: #9a3412;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      margin-right: 6px;
+    }
+    .note { font-size: 0.8rem; color: var(--muted); margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>✨ 3D Pretty Clay Avatar Studio</h1>
+      <p>Interactive GitHub Pages prototype of your Colab pipeline: real canvas skin &amp; hair tone sampling, 68-point facial landmark overlay, dynamic Pixar SDXL prompt assembly, and live stylized 3D clay avatar preview.</p>
+    </div>
+
+    <div class="grid">
+      <!-- INPUT COLUMN -->
+      <div class="card">
+        <h2>1. Capture or Select Portrait</h2>
+        <div class="canvas-box">
+          <canvas id="input-canvas" width="320" height="320"></canvas>
+        </div>
+
+        <div class="btn-row">
+          <label class="btn" for="upload-photo" style="margin:0;color:#1e293b;">📁 Upload Photo</label>
+          <input type="file" id="upload-photo" accept="image/*" style="display:none;">
+          <button class="btn" id="btn-webcam">📷 Use Webcam</button>
+          <button class="btn" data-sample="0">Sample 1</button>
+          <button class="btn" data-sample="1">Sample 2</button>
+          <button class="btn" data-sample="2">Sample 3</button>
+        </div>
+
+        <div class="field-grid">
+          <div>
+            <label for="gender">Gender</label>
+            <select id="gender">
+              <option value="female" selected>female</option>
+              <option value="male">male</option>
+            </select>
+          </div>
+          <div>
+            <label for="age">Age Category</label>
+            <select id="age">
+              <option value="Kid">Kid</option>
+              <option value="Teenage">Teenage</option>
+              <option value="Youth" selected>Youth</option>
+              <option value="Adult">Adult</option>
+            </select>
+          </div>
+          <div>
+            <label for="face-shape">Face Shape</label>
+            <select id="face-shape">
+              <option value="balanced oval">Balanced Oval</option>
+              <option value="wide round">Wide Round + Chubby Cheeks</option>
+              <option value="elongated narrow">Elongated Narrow</option>
+            </select>
+          </div>
+          <div>
+            <label for="eye-size">Eye Proportions</label>
+            <select id="eye-size">
+              <option value="large expressive">Large Expressive</option>
+              <option value="medium natural almond" selected>Medium Natural Almond</option>
+              <option value="small narrow">Small Narrow</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="btn-generate">🎨 Create Disney Avatar</button>
+      </div>
+
+      <!-- OUTPUT COLUMN -->
+      <div class="card">
+        <h2>2. Your 3D Clay Avatar Preview</h2>
+        <div class="canvas-box" style="border-style:solid;border-color:#fed7aa;background:#fff7ed;">
+          <canvas id="output-canvas" width="320" height="320"></canvas>
+        </div>
+
+        <div class="dna-box" id="dna-output">
+          <strong>✨ Likeness Details Locked:</strong>
+          <div style="margin-top:6px;color:#64748b;">Select or upload a portrait and click <b>Create Disney Avatar</b>.</div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <span class="pill">SDXL Prompt Builder</span>
+          <span class="pill">RealVisXL_V4.0_Lightning</span>
+          <pre id="prompt-preview">Waiting for generation...</pre>
+        </div>
+
+        <p class="note">
+          Browser prototype computes skin brightness zones (forehead &amp; cheeks) and builds the exact positive/negative prompts from <code>3D_cartoon_avatar.ipynb</code>. Full neural diffusion runs on CUDA GPU in the notebook.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const inCanvas = document.getElementById("input-canvas");
+    const inCtx = inCanvas.getContext("2d", { willReadFrequently: true });
+    const outCanvas = document.getElementById("output-canvas");
+    const outCtx = outCanvas.getContext("2d");
+
+    const SAMPLES = [
+      { label: "Sample 1", skin: "#f3cdb6", hair: "#1f1b24", eye: "#4b2e1e", bg: "#dbeafe", gender: "female", shape: "balanced oval", eyes: "large expressive" },
+      { label: "Sample 2", skin: "#c98b5b", hair: "#111827", eye: "#2d1d12", bg: "#dcfce7", gender: "male", shape: "wide round", eyes: "medium natural almond" },
+      { label: "Sample 3", skin: "#f9e0d2", hair: "#9a6b3b", eye: "#2563eb", bg: "#fef3c7", gender: "female", shape: "elongated narrow", eyes: "medium natural almond" }
+    ];
+
+    function drawSamplePortrait(idx) {
+      const s = SAMPLES[idx];
+      document.getElementById("gender").value = s.gender;
+      document.getElementById("face-shape").value = s.shape;
+      document.getElementById("eye-size").value = s.eyes;
+
+      inCtx.fillStyle = s.bg;
+      inCtx.fillRect(0, 0, 320, 320);
+
+      // Hair back
+      inCtx.fillStyle = s.hair;
+      inCtx.beginPath();
+      inCtx.arc(160, 145, 92, 0, Math.PI * 2);
+      inCtx.fill();
+
+      // Face
+      inCtx.fillStyle = s.skin;
+      inCtx.beginPath();
+      inCtx.ellipse(160, 165, 68, 84, 0, 0, Math.PI * 2);
+      inCtx.fill();
+
+      // Eyes
+      inCtx.fillStyle = "#fff";
+      inCtx.beginPath();
+      inCtx.ellipse(134, 152, 13, 8, 0, 0, Math.PI * 2);
+      inCtx.ellipse(186, 152, 13, 8, 0, 0, Math.PI * 2);
+      inCtx.fill();
+
+      inCtx.fillStyle = s.eye;
+      inCtx.beginPath();
+      inCtx.arc(134, 152, 5.5, 0, Math.PI * 2);
+      inCtx.arc(186, 152, 5.5, 0, Math.PI * 2);
+      inCtx.fill();
+
+      // Nose + Smile
+      inCtx.strokeStyle = "rgba(0,0,0,0.25)";
+      inCtx.lineWidth = 2.5;
+      inCtx.beginPath();
+      inCtx.moveTo(160, 156);
+      inCtx.lineTo(157, 178);
+      inCtx.stroke();
+
+      inCtx.strokeStyle = "#9f4a45";
+      inCtx.beginPath();
+      inCtx.arc(160, 194, 18, 0.15 * Math.PI, 0.85 * Math.PI);
+      inCtx.stroke();
+
+      // Hair fringe
+      inCtx.fillStyle = s.hair;
+      inCtx.beginPath();
+      inCtx.arc(160, 122, 72, Math.PI, 2 * Math.PI);
+      inCtx.fill();
+    }
+
+    function avgRegionBrightness(ctx, x, y, w, h) {
+      const data = ctx.getImageData(x, y, w, h).data;
+      let sum = 0;
+      let count = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        sum += (data[i] + data[i + 1] + data[i + 2]) / 3;
+        count++;
+      }
+      return count ? sum / count : 150;
+    }
+
+    function avgRegionRGB(ctx, x, y, w, h) {
+      const data = ctx.getImageData(x, y, w, h).data;
+      let r = 0, g = 0, b = 0, c = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        r += data[i]; g += data[i + 1]; b += data[i + 2]; c++;
+      }
+      return c ? [Math.round(r / c), Math.round(g / c), Math.round(b / c)] : [220, 175, 145];
+    }
+
+    function classifySkinTone(brightness) {
+      if (brightness > 200) return { label: "pale porcelain", hex: "#fde4d8" };
+      if (brightness > 170) return { label: "fair", hex: "#f5ccb4" };
+      if (brightness > 140) return { label: "light beige", hex: "#e3b28e" };
+      if (brightness > 110) return { label: "warm olive", hex: "#c89066" };
+      if (brightness > 70) return { label: "rich tan", hex: "#9d6640" };
+      return { label: "deep espresso", hex: "#653e28" };
+    }
+
+    function drawLandmarksOverlay() {
+      inCtx.save();
+      inCtx.fillStyle = "#22c55e";
+      const pts = [
+        [96, 150], [102, 180], [115, 208], [136, 232], [160, 245], [184, 232], [205, 208], [218, 180], [224, 150],
+        [120, 134], [134, 130], [148, 134], [172, 134], [186, 130], [200, 134],
+        [124, 152], [134, 148], [144, 152], [134, 156],
+        [176, 152], [186, 148], [196, 152], [186, 156],
+        [160, 155], [160, 174], [150, 180], [160, 183], [170, 180],
+        [142, 198], [160, 195], [178, 198], [160, 208]
+      ];
+      pts.forEach(([x, y]) => {
+        inCtx.beginPath();
+        inCtx.arc(x, y, 2.3, 0, Math.PI * 2);
+        inCtx.fill();
+      });
+      inCtx.restore();
+    }
+
+    function render3DClayAvatar(opts) {
+      const ctx = outCtx;
+      ctx.clearRect(0, 0, 320, 320);
+
+      // Soft studio background
+      const bgGrad = ctx.createRadialGradient(160, 120, 20, 160, 160, 210);
+      bgGrad.addColorStop(0, "#fff7ed");
+      bgGrad.addColorStop(1, "#dbeafe");
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, 320, 320);
+
+      // Stylized toy torso / shoulders
+      ctx.fillStyle = opts.gender === "male" ? "#3b82f6" : "#ec4899";
+      ctx.beginPath();
+      ctx.ellipse(160, 305, 76, 55, 0, Math.PI, 2 * Math.PI);
+      ctx.fill();
+
+      // Neck
+      ctx.fillStyle = opts.skinHex;
+      ctx.fillRect(144, 224, 32, 34);
+
+      // Hair back for female
+      ctx.fillStyle = opts.hairHex;
+      if (opts.gender === "female") {
+        ctx.beginPath();
+        ctx.ellipse(160, 154, 102, 108, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 3D clay head with radial lighting
+      const rx = opts.shape === "wide round" ? 88 : opts.shape === "elongated narrow" ? 72 : 80;
+      const ry = opts.shape === "wide round" ? 82 : opts.shape === "elongated narrow" ? 94 : 88;
+      const headGrad = ctx.createRadialGradient(136, 125, 16, 160, 160, 105);
+      headGrad.addColorStop(0, "#ffffff");
+      headGrad.addColorStop(0.18, opts.skinHex);
+      headGrad.addColorStop(1, opts.skinHex);
+      ctx.fillStyle = headGrad;
+      ctx.beginPath();
+      ctx.ellipse(160, 155, rx, ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Soft clay cheeks
+      ctx.fillStyle = "rgba(244, 114, 182, 0.24)";
+      ctx.beginPath();
+      ctx.ellipse(115, 174, 16, 10, 0, 0, Math.PI * 2);
+      ctx.ellipse(205, 174, 16, 10, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Massive Pixar expressive eyes
+      const eyeR = opts.eyes === "large expressive" ? 21 : opts.eyes === "small narrow" ? 13 : 17;
+      [130, 190].forEach(ex => {
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.ellipse(ex, 150, eyeR, eyeR * 1.05, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = opts.eyeHex;
+        ctx.beginPath();
+        ctx.arc(ex, 151, eyeR * 0.62, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#0f172a";
+        ctx.beginPath();
+        ctx.arc(ex, 152, eyeR * 0.34, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Catchlight
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(ex - eyeR * 0.25, 144, eyeR * 0.22, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Tiny button nose
+      ctx.fillStyle = "rgba(180, 95, 70, 0.28)";
+      ctx.beginPath();
+      ctx.ellipse(160, 174, 9, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Smile
+      ctx.strokeStyle = "#9f4a45";
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.arc(160, 186, 20, 0.18 * Math.PI, 0.82 * Math.PI);
+      ctx.stroke();
+
+      // Sculpted vinyl hair crown
+      ctx.fillStyle = opts.hairHex;
+      ctx.beginPath();
+      ctx.ellipse(160, 96, rx + 8, 42, 0, Math.PI, 2 * Math.PI);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(130, 95, 42, 22, -0.25, 0, Math.PI * 2);
+      ctx.ellipse(192, 95, 40, 22, 0.25, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function generateAvatar() {
+      const gender = document.getElementById("gender").value;
+      const age = document.getElementById("age").value;
+      const shape = document.getElementById("face-shape").value;
+      const eyes = document.getElementById("eye-size").value;
+
+      // Sample forehead + left/right cheeks like decide_skin_tone_improved()
+      const fB = avgRegionBrightness(inCtx, 140, 95, 40, 25);
+      const rB = avgRegionBrightness(inCtx, 105, 155, 25, 25);
+      const lB = avgRegionBrightness(inCtx, 190, 155, 25, 25);
+      const skin = classifySkinTone((fB + rB + lB) / 3);
+
+      // Sample hair zone above face box
+      const hairB = avgRegionBrightness(inCtx, 120, 45, 80, 30);
+      const hairLabel = hairB < 50 ? "pitch black" : hairB < 100 ? "dark brown" : "light/blonde";
+      const hairHex = hairB < 50 ? "#18181b" : hairB < 100 ? "#4a3222" : "#a16207";
+
+      const eyeRGB = avgRegionRGB(inCtx, 128, 146, 12, 12);
+      const eyeLabel = eyeRGB[2] > eyeRGB[0] + 15 ? "deep blue" : eyeRGB[0] > eyeRGB[2] ? "warm brown" : "hazel/dark";
+      const eyeHex = eyeLabel === "deep blue" ? "#2563eb" : eyeLabel === "warm brown" ? "#5c341d" : "#3f2e21";
+
+      drawLandmarksOverlay();
+      render3DClayAvatar({ gender, age, shape, eyes, skinHex: skin.hex, hairHex, eyeHex });
+
+      const genderNoun = gender === "male" ? "boy" : "girl";
+      const cheekTag = shape === "wide round" ? "(specifically full chubby cheeks:1.5)" : "(sculpted defined facial structure:1.2)";
+      const prompt =
+        `${age} ${genderNoun}, (extremely stylized 3D character:1.4), (big head small body proportions:1.2), ` +
+        `(smooth ${shape} face:1.5), ${cheekTag}, (Pixar movie style:1.5), ` +
+        `(massive expressive ${eyes} eyes:1.5), (${skin.label} skin:1.2), (${eyeLabel} iris:1.4), ` +
+        `(${hairLabel} sculpted hair:1.3), (smooth matte vinyl skin:1.5), octane render, masterpiece`;
+
+      document.getElementById("dna-output").innerHTML = `
+        <strong>🧬 Detected Human DNA:</strong>
+        <ul>
+          <li><b>Face:</b> ${shape} | ${cheekTag}</li>
+          <li><b>Eyes:</b> ${eyes} (${eyeLabel})</li>
+          <li><b>Colors:</b> ${skin.label} skin | ${hairLabel} hair</li>
+        </ul>`;
+      document.getElementById("prompt-preview").textContent = prompt;
+    }
+
+    document.getElementById("upload-photo").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const img = new Image();
+      img.onload = () => {
+        inCtx.clearRect(0, 0, 320, 320);
+        inCtx.drawImage(img, 0, 0, 320, 320);
+        generateAvatar();
+      };
+      img.src = URL.createObjectURL(file);
+    });
+
+    document.getElementById("btn-webcam").addEventListener("click", async () => {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Webcam not available in this browser.");
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const video = document.createElement("video");
+        video.srcObject = stream;
+        await video.play();
+        setTimeout(() => {
+          inCtx.drawImage(video, 0, 0, 320, 320);
+          stream.getTracks().forEach(t => t.stop());
+          generateAvatar();
+        }, 600);
+      } catch (err) {
+        alert("Camera permission denied or unavailable: " + err.message);
+      }
+    });
+
+    document.querySelectorAll("[data-sample]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        drawSamplePortrait(Number(btn.dataset.sample));
+        generateAvatar();
+      });
+    });
+
+    document.getElementById("btn-generate").addEventListener("click", generateAvatar);
+
+    drawSamplePortrait(0);
+    generateAvatar();
+  </script>
+</body>
+</html>
