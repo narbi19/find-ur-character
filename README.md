@@ -1,5 +1,7 @@
 # Find Ur Character
 
+**Live Prototype:** https://narbi19.github.io/find-ur-character/
+
 A 3D cartoon-avatar project that analyzes a portrait and transforms the detected facial characteristics into a Pixar/Disney-style clay character.
 
 The project combines:
